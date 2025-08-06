@@ -6,6 +6,7 @@ class Mine:
         '''
         self.n = n
         self.matrix = [[ 0 for _ in range(self.n)] for _ in range(self.n)]
+        self.mask = [[ 0 for _ in range(self.n)] for _ in range(self.n)]
         pass
 
     def random_assign(self, k):
