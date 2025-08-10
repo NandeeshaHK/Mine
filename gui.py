@@ -8,8 +8,9 @@ class MineGameUI:
         self.root = root
         self.n = n
         self.k = k
-        self.matrix = [[0 for _ in range(n)] for _ in range(n)]
+        self.__matrix = [[0 for _ in range(n)] for _ in range(n)]
         self.mask_mat = [[0 for _ in range(n)] for _ in range(n)]
+        self.state_mat = [[-2  for _ in range(n)] for _ in range(n)]
         self.buttons = [[None for _ in range(n)] for _ in range(n)]
         self.score = 0
         self.flags_left = k
@@ -34,28 +35,30 @@ class MineGameUI:
 
 
     def colored_button(self, r, c):
-        if   self.matrix[r][c] == 0:
+        self.state_mat[r][c] = self.__matrix[r][c]
+
+        if   self.__matrix[r][c] == 0:
             self.buttons[r][c]['bg'] = 'gray'        
-        elif self.matrix[r][c] == 1:
+        elif self.__matrix[r][c] == 1:
             self.buttons[r][c]['bg'] = 'green'        
-        elif self.matrix[r][c] == 2:
+        elif self.__matrix[r][c] == 2:
             self.buttons[r][c]['bg'] = 'yellowgreen'        
-        elif self.matrix[r][c] == 3:
+        elif self.__matrix[r][c] == 3:
             self.buttons[r][c]['bg'] = 'gold'
-        elif self.matrix[r][c] == 4:
+        elif self.__matrix[r][c] == 4:
             self.buttons[r][c]['bg'] = 'orange'
-        elif self.matrix[r][c] >= 5:
+        elif self.__matrix[r][c] >= 5:
             self.buttons[r][c]['bg'] = 'red'
 
     def reset(self):
         pass
 
     def bfs(self, r, c):
-        if self.mask_mat[r][c] == 1 or self.matrix[r][c] == -1:
+        if self.mask_mat[r][c] == 1 or self.__matrix[r][c] == -1:
             return
         self.mask_mat[r][c] = 1
         self.colored_button(r, c)
-        self.buttons[r][c]['text'] = str(self.matrix[r][c]) if self.matrix[r][c] > 0 else ''
+        self.buttons[r][c]['text'] = str(self.__matrix[r][c]) if self.__matrix[r][c] > 0 else ''
         self.buttons[r][c]['relief'] = tk.SUNKEN
         self.score += 1
         self.status['text'] = f"Score: {self.score} | Flags left: {self.flags_left}"
@@ -66,12 +69,12 @@ class MineGameUI:
                 if i < 0 or j < 0 or i == self.n or j == self.n:
                     continue
 
-                if self.matrix[i][j] == 0:
+                if self.__matrix[i][j] == 0:
                     self.bfs(i,j)
                 else:
                     self.mask_mat[i][j] = 1
                     self.colored_button(i, j)
-                    self.buttons[i][j]['text'] = str(self.matrix[i][j]) if self.matrix[i][j] > 0 else ''
+                    self.buttons[i][j]['text'] = str(self.__matrix[i][j]) if self.__matrix[i][j] > 0 else ''
                     self.buttons[i][j]['relief'] = tk.SUNKEN
                     self.score += 1
                     self.status['text'] = f"Score: {self.score} | Flags left: {self.flags_left}"
@@ -85,13 +88,13 @@ class MineGameUI:
         # print()
         # for i in range(self.n):
         #     for j in range(self.n):
-        #         print(f"{self.matrix[i][j]}  ", end='')
+        #         print(f"{self.__matrix[i][j]}  ", end='')
         #     print()
         # print(self.bombs)
         for i in range(self.n):
             for j in range(self.n):
                 if self.mask_mat[i][j] == -1:
-                    if self.mask_mat[i][j] != self.matrix[i][j]:
+                    if self.mask_mat[i][j] != self.__matrix[i][j]:
                         messagebox.showinfo("Game Over", "You have Low IQ. You should be flagged!")
                         return
                     
@@ -111,7 +114,7 @@ class MineGameUI:
                 if self.mask_mat[i][j] == -1:
                     count += 1
         # print(count)
-        return count == self.matrix[r][c]
+        return count == self.__matrix[r][c]
     
     def left_click(self, r, c):
         if self.flags_left == 0:
@@ -120,17 +123,17 @@ class MineGameUI:
         self.start_friendly_generate_bombs(r, c)
 
         if self.mask_mat[r][c] == 0: # Already revealed or flagged
-            if self.matrix[r][c] == -1:
+            if self.__matrix[r][c] == -1:
                 self.buttons[r][c]['text'] = 'B'
                 self.buttons[r][c]['bg'] = 'red'
                 self.reveal_all()
                 messagebox.showinfo("Game Over", "You clicked a bomb!")
                 self.reset()
-            elif self.matrix[r][c] == 0:
+            elif self.__matrix[r][c] == 0:
                 self.bfs(r, c)
             else:
                 self.colored_button(r, c)
-                self.buttons[r][c]['text'] = str(self.matrix[r][c]) if self.matrix[r][c] > 0 else ''
+                self.buttons[r][c]['text'] = str(self.__matrix[r][c]) if self.__matrix[r][c] > 0 else ''
                 self.buttons[r][c]['relief'] = tk.SUNKEN
                 self.score += 1
                 self.status['text'] = f"Score: {self.score} | Flags left: {self.flags_left}"
@@ -142,7 +145,7 @@ class MineGameUI:
                 for i in range(max(0, r-1), min(self.n, r+2)):
                     for j in range(max(0, c-1), min(self.n, c+2)):
                         if self.mask_mat[i][j] == -1:
-                            if self.mask_mat[i][j] != self.matrix[i][j]:
+                            if self.mask_mat[i][j] != self.__matrix[i][j]:
                                 self.buttons[i][i]['text'] = 'B'
                                 self.buttons[j][j]['bg'] = 'red'
                                 self.reveal_all()
@@ -151,7 +154,7 @@ class MineGameUI:
                                 return
                         else:
                             self.colored_button(i, j)
-                            self.buttons[i][j]['text'] = str(self.matrix[i][j]) if self.matrix[i][j] > 0 else ''
+                            self.buttons[i][j]['text'] = str(self.__matrix[i][j]) if self.__matrix[i][j] > 0 else ''
                             self.buttons[i][j]['relief'] = tk.SUNKEN
                             self.score += 1
                             self.status['text'] = f"Score: {self.score} | Flags left: {self.flags_left}"
@@ -177,7 +180,7 @@ class MineGameUI:
     def reveal_all(self):
         for r in range(self.n):
             for c in range(self.n):
-                if self.matrix[r][c] == -1:
+                if self.__matrix[r][c] == -1:
                     self.buttons[r][c]['text'] = 'B'
                     self.buttons[r][c]['bg'] = 'red'
     
@@ -234,25 +237,25 @@ class MineGameUI:
 
             for idx in bombs_ints:
                 r, c = divmod(idx, self.n)
-                self.matrix[r][c] = -1
+                self.__matrix[r][c] = -1
                 track_masks.append([r, c])
 
                 # Update adjacent tiles
                 for i in range(max(0, r-1), min(self.n, r+2)):
                     for j in range(max(0, c-1), min(self.n, c+2)):
-                        if self.matrix[i][j] != -1:
-                            self.matrix[i][j] += 1
+                        if self.__matrix[i][j] != -1:
+                            self.__matrix[i][j] += 1
 
             print("Bombs are unique:", len(set(bombs_ints)) == len(bombs_ints))
             self.first_click = False
             for i in range(self.n):
                 for j in range(self.n):
-                    if self.matrix[i][j] == -1:
+                    if self.__matrix[i][j] == -1:
                         print("*  ", end='')
                         continue
-                    print(f"{self.matrix[i][j]}  ", end='')
+                    print(f"{self.__matrix[i][j]}  ", end='')
                 print()
-            return self.matrix, self.mask_mat
+            return self.__matrix, self.mask_mat
         return
 
 # Helper to create a sample board
@@ -261,21 +264,21 @@ class mine:
         self.k = k
         self.n = n
         self.mask_mat =  [[0 for _ in range(n)] for _ in range(n)]
-        self.matrix =  [[0 for _ in range(n)] for _ in range(n)]
+        self.__matrix =  [[0 for _ in range(n)] for _ in range(n)]
 
     def generate_sample_game(self):
         bombs_ints = random.sample(range(self.n * self.n), self.k)
         
         for idx in bombs_ints:
             r, c = divmod(idx, n)
-            self.matrix[r][c] = -1
+            self.__matrix[r][c] = -1
 
             # Update adjacent tiles
             for i in range(max(0, r-1), min(n, r+2)):
                 for j in range(max(0, c-1), min(n, c+2)):
-                    if self.matrix[i][j] != -1:
-                        self.matrix[i][j] += 1
-        return self.matrix, self.mask_mat
+                    if self.__matrix[i][j] != -1:
+                        self.__matrix[i][j] += 1
+        return self.__matrix, self.mask_mat
 
 # Example usage
 if __name__ == "__main__":
@@ -283,13 +286,13 @@ if __name__ == "__main__":
     n = 16  # grid size
     k = 40  # bombs
     # game = mine(n , k)
-    # matrix, mask_mat = game.generate_sample_game()
+    # __matrix, mask_mat = game.generate_sample_game()
     # for i in range(game.n):
     #     for j in range(game.n):
-    #         if matrix[i][j] == -1:
+    #         if __matrix[i][j] == -1:
     #             print("*  ", end='')
     #         else:
-    #             print(f"{matrix[i][j]}  ", end='')
+    #             print(f"{__matrix[i][j]}  ", end='')
     #     print()
     # input()
     game = MineGameUI(root, n, k)
