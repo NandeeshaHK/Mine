@@ -16,10 +16,10 @@ class MineGameUI:
         self.flags_left = k
         self.last_clicked = None
         self.first_click  = True
-        self.moves = {(0, -1), (-1, 0), (1, 0), (0, 1)}
-
+        self.game_over = False
+        self.moves = {(-1, -1), (-1, 1) , (1, 1), (1, -1), (0, -1), (-1, 0), (1, 0), (0, 1)}
+        self.moves_4 = {(0, -1), (-1, 0), (1, 0), (0, 1)}
         self.root.title("Minesweeper Test UI")
-
         self.status = tk.Label(root, text=f"Score: {self.score} | Flags left: {self.flags_left}")
         self.status.pack()
 
@@ -96,7 +96,7 @@ class MineGameUI:
                 if self.mask_mat[i][j] == -1:
                     if self.mask_mat[i][j] != self.__matrix[i][j]:
                         messagebox.showinfo("Game Over", "You have Low IQ. You should be flagged!")
-                        return
+                        return False
                     
         # self.reveal_all()
         messagebox.showinfo("Game Finished", "You are BOMB!")
@@ -117,6 +117,7 @@ class MineGameUI:
         return count == self.__matrix[r][c]
     
     def left_click(self, r, c):
+        check = False
         if self.flags_left == 0:
             self.check()
 
@@ -142,6 +143,7 @@ class MineGameUI:
         elif self.mask_mat[r][c] == 1:
             print(self.is_cell_true(r, c))
             if self.is_cell_true(r, c):
+                check = True
                 for i in range(max(0, r-1), min(self.n, r+2)):
                     for j in range(max(0, c-1), min(self.n, c+2)):
                         if self.mask_mat[i][j] == -1:
@@ -158,13 +160,14 @@ class MineGameUI:
                             self.buttons[i][j]['relief'] = tk.SUNKEN
                             self.score += 1
                             self.status['text'] = f"Score: {self.score} | Flags left: {self.flags_left}"
-
         self.last_clicked = (r, c)
         self.mask_mat[r][c] = 1
         print(f"Clicked: {r}, {c}")
+        return check
 
     def right_click(self, r, c):
         if self.mask_mat[r][c] == 0 and self.flags_left > 0:
+            print(f"Flagged r:{r}, c:{c}")
             self.mask_mat[r][c] = -1
             self.buttons[r][c]['text'] = 'F'
             self.buttons[r][c]['bg'] = 'black'
@@ -178,6 +181,7 @@ class MineGameUI:
         self.status['text'] = f"Score: {self.score} | Flags left: {self.flags_left}"
 
     def reveal_all(self):
+        self.game_over = True
         for r in range(self.n):
             for c in range(self.n):
                 if self.__matrix[r][c] == -1:
@@ -189,51 +193,54 @@ class MineGameUI:
             messagebox.showinfo("Box count should be greater or equal to 5")
             exit(0)
             return
-            
+        
+        bombs_ints = [1 , 1]
         if self.first_click:
-            mask = [[0 for _ in range(self.n)] for _ in range(self.n)]
-            start_int = random.choice([self.k // 2, self.k // 3])
-            bombs_ints = random.sample(range(self.n * self.n), self.k)
-            count = 0
-            track_masks = [[r, c]]
-            track_q = deque([(r ,c)])
-            # track_q.append((r, c))
-            mask[r][c] = 1
-            print("start int", start_int)
-            while count <= start_int:
-                if not len(track_q):
-                    break
-                r, c  = track_q.popleft()
-                for i, j in self.moves:
-                    m, n = r + i, c + j
-                    if m < 0 or n < 0 or m == self.n or n == self.n:
-                        continue
-                    if [m, n] not in track_masks:
-                        # if random.choice([True, False]):
-                            mask[m][n] = 1
-                            track_masks.append([m, n])
-                            track_q.extend([(m, n)])
-                            count += 1
-                            # print(count)
-                            print(f"r: {m}, c: {n}, count:{count}")
-                    if count >= start_int:
+            while len(bombs_ints) != len(set(bombs_ints)):
+                mask = [[0 for _ in range(self.n)] for _ in range(self.n)]
+                start_int = self.k//2
+                bombs_ints = random.sample(range(self.n * self.n), self.k)
+                count = 0
+                track_masks = [[r, c]]
+                track_q = deque([(r ,c)])
+                # track_q.append((r, c))
+                mask[r][c] = 1
+                print("start int", start_int)
+                while count <= start_int:
+                    if not len(track_q):
                         break
+                    r, c  = track_q.popleft()
+                    for i, j in self.moves_4:
+                        m, n = r + i, c + j
+                        if m < 0 or n < 0 or m == self.n or n == self.n:
+                            continue
+                        if [m, n] not in track_masks:
+                            # if random.choice([True, False]):
+                                mask[m][n] = 1
+                                track_masks.append([m, n])
+                                track_q.extend([(m, n)])
+                                count += 1
+                                # print(count)
+                                print(f"r: {m}, c: {n}, count:{count}")
+                        if count >= start_int:
+                            break
 
-            for i in range(self.n):
-                for j in range(self.n):
-                    print(f"{mask[i][j]}  ", end='')
-                print()
-            print(track_masks)
+                for i in range(self.n):
+                    for j in range(self.n):
+                        print(f"{mask[i][j]}  ", end='')
+                    print()
+                print(track_masks)
 
-            bombs_ints.sort()
-            for i, idx in enumerate(bombs_ints):
-                r, c = divmod(idx, self.n)
-                while [r, c] in track_masks and idx in bombs_ints:
-                    idx = random.choice(range(i, self.n * self.n))
+                bombs_ints.sort()
+                for i, idx in enumerate(bombs_ints):
                     r, c = divmod(idx, self.n)
-                    # track_masks.append([r, c])
-                bombs_ints[i] = r * self.n + c
-            print("Bombs int:", len(bombs_ints))
+                    while [r, c] in track_masks and idx in bombs_ints:
+                        idx = random.choice(range(i, self.n * self.n))
+                        r, c = divmod(idx, self.n)
+                        # track_masks.append([r, c])
+                    bombs_ints[i] = r * self.n + c
+                print("Bombs int:", len(bombs_ints))
+                print("Bombs are unique:", len(set(bombs_ints)) == len(bombs_ints))
 
             for idx in bombs_ints:
                 r, c = divmod(idx, self.n)
@@ -245,8 +252,6 @@ class MineGameUI:
                     for j in range(max(0, c-1), min(self.n, c+2)):
                         if self.__matrix[i][j] != -1:
                             self.__matrix[i][j] += 1
-
-            print("Bombs are unique:", len(set(bombs_ints)) == len(bombs_ints))
             self.first_click = False
             for i in range(self.n):
                 for j in range(self.n):
@@ -296,4 +301,5 @@ if __name__ == "__main__":
     #     print()
     # input()
     game = MineGameUI(root, n, k)
+    root.after(1000)
     root.mainloop()
