@@ -98,6 +98,7 @@ class solver:
         if self.game_over:
             print("Exiting the game solving ....")
             exit(0)
+        # self.debug(r, c)
         count = 0
         count_flagged = 0
         node_dict = defaultdict(list)
@@ -124,10 +125,14 @@ class solver:
         if count + count_flagged == self.state[r][c]:
             for i, j in node_dict[-2]:
                 self.flag(i, j)
+
             try:
                 self.coast.remove(idx)
             except KeyError as e:
                 print(f"{idx} was never added in the Coast set")
+            
+            # self.click(r, c)
+            count = 0
             self.done.add(idx)
 
         check = False
@@ -141,10 +146,6 @@ class solver:
             except KeyError as e:
                 print(f"{idx} doesn't exists no longer in the Coast set")
             self.done.add(idx)
-        
-        if self.state[r][c] == count:
-            time.sleep(0.2)
-            self.click(r, c)
             
         if count > self.state[r][c] - count_flagged:
             self.coast.add(idx)

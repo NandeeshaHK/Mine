@@ -9,7 +9,7 @@ class MineGameUI:
         self.n = n
         self.k = k
         self.__matrix = [[0 for _ in range(n)] for _ in range(n)]
-        self.mask_mat = [[0 for _ in range(n)] for _ in range(n)]
+        self.mask_mat = [[-2 for _ in range(n)] for _ in range(n)]
         self.state_mat = [[-2  for _ in range(n)] for _ in range(n)]
         self.buttons = [[None for _ in range(n)] for _ in range(n)]
         self.score = 0
@@ -36,6 +36,7 @@ class MineGameUI:
 
     def colored_button(self, r, c):
         self.state_mat[r][c] = self.__matrix[r][c]
+        self.mask_mat[r][c]  = 1
 
         if   self.__matrix[r][c] == 0:
             self.buttons[r][c]['bg'] = 'gray'        
@@ -68,10 +69,10 @@ class MineGameUI:
                 j = c + y
                 if i < 0 or j < 0 or i == self.n or j == self.n:
                     continue
-
                 if self.__matrix[i][j] == 0:
                     self.bfs(i,j)
                 else:
+                    self.state_mat[r][c] = self.__matrix[r][c]
                     self.mask_mat[i][j] = 1
                     self.colored_button(i, j)
                     self.buttons[i][j]['text'] = str(self.__matrix[i][j]) if self.__matrix[i][j] > 0 else ''
@@ -115,6 +116,21 @@ class MineGameUI:
                     count += 1
         # print(count)
         return count == self.__matrix[r][c]
+
+    def debug(self, r=None, c=None):
+        with open('mask.txt', mode="w") as file:       
+            for i in range(self.n):
+                string = ''
+                for j in range(self.n):
+                    if self.mask_mat[i][j] == -1:
+                        string += 'B  '
+                    elif self.mask_mat[i][j] == -2:
+                        string += 'X  '
+                    elif r == i and c == j: 
+                        string += str(self.mask_mat[i][j] * self.__matrix[i][j]) + '< '
+                    else: 
+                        string += str(self.mask_mat[i][j] * self.__matrix[i][j]) + '  '  # ensure it's string
+                file.write(string + "\n")  # write row and move to next line
     
     def left_click(self, r, c):
         check = False
@@ -123,7 +139,7 @@ class MineGameUI:
 
         self.start_friendly_generate_bombs(r, c)
 
-        if self.mask_mat[r][c] == 0: # Already revealed or flagged
+        if self.mask_mat[r][c] == -2: # if clickable ...
             if self.__matrix[r][c] == -1:
                 self.buttons[r][c]['text'] = 'B'
                 self.buttons[r][c]['bg'] = 'red'
@@ -144,6 +160,7 @@ class MineGameUI:
             print(self.is_cell_true(r, c))
             if self.is_cell_true(r, c):
                 check = True
+                print(f"Clicking r:{r} c:{c}, to Open all possibilities")
                 for i in range(max(0, r-1), min(self.n, r+2)):
                     for j in range(max(0, c-1), min(self.n, c+2)):
                         if self.mask_mat[i][j] == -1:
@@ -154,26 +171,31 @@ class MineGameUI:
                                 messagebox.showinfo("Game Over", "You have Low IQ. You should be flagged!")
                                 self.reset()
                                 return
+                        elif self.__matrix[i][j] == 0:
+                            self.bfs(i, j)
                         else:
                             self.colored_button(i, j)
                             self.buttons[i][j]['text'] = str(self.__matrix[i][j]) if self.__matrix[i][j] > 0 else ''
                             self.buttons[i][j]['relief'] = tk.SUNKEN
                             self.score += 1
                             self.status['text'] = f"Score: {self.score} | Flags left: {self.flags_left}"
+        self.debug(r, c) 
         self.last_clicked = (r, c)
         self.mask_mat[r][c] = 1
         print(f"Clicked: {r}, {c}")
         return check
 
     def right_click(self, r, c):
-        if self.mask_mat[r][c] == 0 and self.flags_left > 0:
+        if self.mask_mat[r][c] == -2 and self.flags_left > 0:
             print(f"Flagged r:{r}, c:{c}")
             self.mask_mat[r][c] = -1
+            self.state_mat[r][c] = -1
             self.buttons[r][c]['text'] = 'F'
             self.buttons[r][c]['bg'] = 'black'
             self.flags_left -= 1
         elif self.mask_mat[r][c] == -1:
-            self.mask_mat[r][c] = 0
+            print(f"UnFlagged r:{r}, c:{c} ...")
+            self.mask_mat[r][c] = -2
             self.buttons[r][c]['text'] = ''
             self.buttons[r][c]['bg'] = 'white'
             self.flags_left += 1
